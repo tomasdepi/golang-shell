@@ -4,22 +4,18 @@ import (
 	"bufio"
 	"fmt"
 	"os"
-	"os/exec"
 	"strings"
-	"syscall"
 
 	"github.com/codecrafters-io/shell-starter-go/app/lexer"
 	"github.com/codecrafters-io/shell-starter-go/app/parser"
+	"github.com/codecrafters-io/shell-starter-go/app/shell"
 )
-
-var shell Shell
-var savedFD int
-var fdToOverride int
 
 func main() {
 	REPL()
 }
 
+// TODO: fix arrow left and right navigation
 func readInput(reader *bufio.Reader) (string, int) {
 
 	input, err := reader.ReadString('\n')
@@ -40,7 +36,7 @@ func REPL() {
 
 	currentDir, _ := os.Getwd()
 
-	shell = Shell{
+	shell := shell.Shell{
 		CurrentDir: currentDir,
 	}
 
@@ -48,7 +44,7 @@ func REPL() {
 
 	for {
 
-		shell.printPrompt()
+		shell.PrintPrompt()
 
 		input, count := readInput(stdinReader)
 
@@ -58,11 +54,6 @@ func REPL() {
 
 		tokens, _ := lexer.Lex(input)
 
-		/* 		for _, t := range tokens {
-		   			t.PrintDebug()
-		   		}
-		   		continue */
-
 		p := parser.New(tokens)
 		sc, parseErr := p.ParseSingleCommand()
 
@@ -71,69 +62,11 @@ func REPL() {
 			continue
 		}
 
-		command := sc.Args[0]
-		args := sc.Args[1:]
+		err := shell.Execute(sc)
 
-		// handle redirections
-		if len(sc.Redirs) > 0 {
-
-			lastRedir := sc.Redirs[len(sc.Redirs)-1]
-
-			fdToOverride = lastRedir.FD
-
-			// save original fd
-			savedFD, _ = syscall.Dup(fdToOverride)
-
-			// TODO: implment multios
-
-			flags := os.O_CREATE | os.O_WRONLY
-
-			if lastRedir.Append {
-				flags = os.O_APPEND | os.O_CREATE | os.O_WRONLY
-			}
-
-			file, _ := os.OpenFile(
-				lastRedir.To,
-				flags,
-				0644,
-			)
-
-			syscall.Dup2(int(file.Fd()), fdToOverride)
-
-			//defer file.Close()
-
+		if err != nil {
+			fmt.Println(err)
 		}
 
-		if handler, ok := builtInCommands[command]; ok {
-			handler(args)
-		} else {
-
-			// search the command in PATH
-			_, err := exec.LookPath(command)
-
-			if err != nil {
-				fmt.Printf("%s: command not found\n", command)
-			} else {
-
-				cmd := exec.Command(command, args...)
-
-				cmd.Stdout = os.Stdout
-				//cmd.Stdin = os.Stdin
-				cmd.Stderr = os.Stderr
-
-				cmd.Run()
-				/* if execErr != nil {
-					if _, ok := err.(*exec.ExitError); !ok {
-						fmt.Println("Execution error: ", execErr)
-					}
-				} */
-			}
-		}
-
-		// restore fd
-		if len(sc.Redirs) > 0 {
-			syscall.Dup2(savedFD, fdToOverride)
-			syscall.Close(savedFD)
-		}
 	}
 }

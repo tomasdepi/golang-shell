@@ -60,7 +60,7 @@ func (p *Parser) ParseSingleCommand() (*SingleCommand, error) {
 			sc.Args = append(sc.Args, token.Value)
 		case lexer.OPERATOR:
 			if isRedirectionOperator(token.Value) {
-				err := p.processRedirection(token, sc)
+				err := p.parseRedirection(token, sc)
 				if err != nil {
 					return nil, err
 				}
@@ -73,7 +73,7 @@ func (p *Parser) ParseSingleCommand() (*SingleCommand, error) {
 	return sc, nil
 }
 
-func (p *Parser) processRedirection(token *lexer.Token, sc *SingleCommand) error {
+func (p *Parser) parseRedirection(token *lexer.Token, sc *SingleCommand) error {
 
 	fd := 1
 
@@ -91,7 +91,7 @@ func (p *Parser) processRedirection(token *lexer.Token, sc *SingleCommand) error
 		p.next()
 		nextToken := p.peek()
 
-		if nextToken == nil {
+		if nextToken == nil || nextToken.Kind != lexer.WORD {
 			return fmt.Errorf("parse error")
 		}
 
