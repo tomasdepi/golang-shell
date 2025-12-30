@@ -9,6 +9,7 @@ import (
 	"github.com/codecrafters-io/shell-starter-go/app/lexer"
 	"github.com/codecrafters-io/shell-starter-go/app/parser"
 	"github.com/codecrafters-io/shell-starter-go/app/shell"
+	"golang.org/x/term"
 )
 
 func main() {
@@ -32,23 +33,29 @@ func readInput(reader *bufio.Reader) (string, int) {
 
 func REPL() {
 
-	stdinReader := bufio.NewReader(os.Stdin)
+	//stdinReader := bufio.NewReader(os.Stdin)
 
 	currentDir, _ := os.Getwd()
 
-	shell := shell.Shell{
-		CurrentDir: currentDir,
-	}
+	shell := shell.NewShell(currentDir)
 
 	lexer := lexer.Lexer{}
 
 	for {
 
-		shell.PrintPrompt()
+		fd := int(os.Stdin.Fd())
 
-		input, count := readInput(stdinReader)
+		oldState, _ := term.MakeRaw(fd)
 
-		if count == 0 {
+		input := shell.ReadlineFromShell()
+
+		err := term.Restore(fd, oldState)
+
+		if err != nil {
+			panic(err)
+		}
+
+		if len(input) == 0 {
 			continue
 		}
 
@@ -62,7 +69,7 @@ func REPL() {
 			continue
 		}
 
-		err := shell.Execute(sc)
+		err = shell.Execute(sc)
 
 		if err != nil {
 			fmt.Println(err)

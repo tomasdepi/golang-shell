@@ -5,6 +5,7 @@ import (
 	"os"
 	"os/exec"
 	"slices"
+	"strconv"
 	"strings"
 	"syscall"
 
@@ -14,15 +15,35 @@ import (
 const PROMP = "$ "
 
 const (
-	EXIT_COMMAND = "exit"
-	ECHO_COMMAND = "echo"
-	TYPE_COMMAND = "type"
-	PWD_COMMAND  = "pwd"
-	CD_COMMAND   = "cd"
+	EXIT_COMMAND    = "exit"
+	ECHO_COMMAND    = "echo"
+	TYPE_COMMAND    = "type"
+	PWD_COMMAND     = "pwd"
+	CD_COMMAND      = "cd"
+	HISTORY_COMMAND = "history"
 )
 
 type Shell struct {
-	CurrentDir string
+	CurrentDir     string
+	historyManager *HistoryManager
+	readline       *ReadLine
+}
+
+func NewShell(currDir string) *Shell {
+
+	h := NewHistory()
+
+	rl := NewReadLine(PROMP, h)
+
+	return &Shell{
+		CurrentDir:     currDir,
+		historyManager: h,
+		readline:       rl,
+	}
+}
+
+func (s *Shell) ReadlineFromShell() string {
+	return s.readline.Readline()
 }
 
 func (s *Shell) changeDir(newDir string) {
@@ -41,17 +62,19 @@ func (s *Shell) isBuiltInCommand(cmd string) bool {
 		TYPE_COMMAND,
 		PWD_COMMAND,
 		CD_COMMAND,
+		HISTORY_COMMAND,
 	}, cmd)
 }
 
 func (s *Shell) getBuiltins() map[string]func([]string) {
 
 	builtin := map[string]func([]string){
-		ECHO_COMMAND: s.echo,
-		EXIT_COMMAND: func([]string) { s.exit() },
-		TYPE_COMMAND: s.typeCmd,
-		PWD_COMMAND:  s.pwd,
-		CD_COMMAND:   s.cd,
+		ECHO_COMMAND:    s.echo,
+		EXIT_COMMAND:    func(args []string) { s.exit() },
+		TYPE_COMMAND:    s.typeCmd,
+		PWD_COMMAND:     s.pwd,
+		CD_COMMAND:      s.cd,
+		HISTORY_COMMAND: s.history,
 	}
 
 	return builtin
@@ -138,6 +161,26 @@ func (s *Shell) cd(args []string) {
 	}
 } */
 
+func (s *Shell) history(args []string) {
+
+	var history []string
+	n := 1
+	countFrom := 1
+
+	if len(args) == 0 {
+		history = s.historyManager.ReadAll()
+
+	} else {
+		n, _ = strconv.Atoi(args[0])
+		history = s.historyManager.ReadLastN(n)
+		countFrom = s.historyManager.GetHistoryLen() - n + 1
+	}
+
+	for i, entry := range history {
+		fmt.Println("\t", countFrom+i, entry)
+	}
+}
+
 func (s *Shell) Execute(sc *parser.SingleCommand) error {
 	restoreFns, err := s.applyRedirections(sc.Redirs)
 	if err != nil {
@@ -155,6 +198,8 @@ func (s *Shell) Execute(sc *parser.SingleCommand) error {
 	if len(sc.Args) == 0 {
 		return nil
 	}
+
+	s.historyManager.Add(strings.Join(sc.Args, " "))
 
 	cmd := sc.Args[0]
 	args := sc.Args[1:]
