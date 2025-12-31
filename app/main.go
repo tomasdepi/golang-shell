@@ -1,10 +1,8 @@
 package main
 
 import (
-	"bufio"
 	"fmt"
 	"os"
-	"strings"
 
 	"github.com/codecrafters-io/shell-starter-go/app/lexer"
 	"github.com/codecrafters-io/shell-starter-go/app/parser"
@@ -16,24 +14,7 @@ func main() {
 	REPL()
 }
 
-// TODO: fix arrow left and right navigation
-func readInput(reader *bufio.Reader) (string, int) {
-
-	input, err := reader.ReadString('\n')
-
-	if err != nil {
-		fmt.Fprintln(os.Stderr, "Error reading input:", err)
-		os.Exit(1)
-	}
-
-	trimmedInput := strings.TrimRight(input, "\n")
-
-	return trimmedInput, len(trimmedInput)
-}
-
 func REPL() {
-
-	//stdinReader := bufio.NewReader(os.Stdin)
 
 	currentDir, _ := os.Getwd()
 

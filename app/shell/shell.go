@@ -70,7 +70,7 @@ func (s *Shell) getBuiltins() map[string]func([]string) {
 
 	builtin := map[string]func([]string){
 		ECHO_COMMAND:    s.echo,
-		EXIT_COMMAND:    func(args []string) { s.exit() },
+		EXIT_COMMAND:    s.exit,
 		TYPE_COMMAND:    s.typeCmd,
 		PWD_COMMAND:     s.pwd,
 		CD_COMMAND:      s.cd,
@@ -84,7 +84,9 @@ func (s *Shell) echo(args []string) {
 	fmt.Println(strings.Join(args, " "))
 }
 
-func (s *Shell) exit() {
+func (s *Shell) exit(args []string) {
+
+	s.historyManager.SaveToFile(os.Getenv("HISTFILE"))
 	os.Exit(0)
 }
 
@@ -164,21 +166,49 @@ func (s *Shell) cd(args []string) {
 func (s *Shell) history(args []string) {
 
 	var history []string
-	n := 1
-	countFrom := 1
 
 	if len(args) == 0 {
 		history = s.historyManager.ReadAll()
+		for i, entry := range history {
+			fmt.Println("\t", i+1, entry)
+		}
+		return
+	}
 
-	} else {
-		n, _ = strconv.Atoi(args[0])
+	param := args[0]
+
+	n, err := strconv.Atoi(param)
+
+	if err == nil { // param is valid number
 		history = s.historyManager.ReadLastN(n)
-		countFrom = s.historyManager.GetHistoryLen() - n + 1
+		countFrom := s.historyManager.GetHistoryLen() - n + 1
+
+		for i, entry := range history {
+			fmt.Println("\t", countFrom+i, entry)
+		}
+		return
 	}
 
-	for i, entry := range history {
-		fmt.Println("\t", countFrom+i, entry)
+	switch param {
+	case "-a":
+		err := s.historyManager.AppendToFile(args[1])
+		if err != nil {
+			fmt.Println(err)
+		}
+		return
+	case "-w":
+		err := s.historyManager.SaveToFile(args[1])
+		if err != nil {
+			fmt.Println(err)
+		}
+		return
+	case "-r":
+		err := s.historyManager.LoadFromFile(args[1])
+		if err != nil {
+			fmt.Println(err)
+		}
 	}
+
 }
 
 func (s *Shell) Execute(sc *parser.SingleCommand) error {
