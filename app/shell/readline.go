@@ -4,21 +4,29 @@ import (
 	"fmt"
 	"os"
 	"slices"
+	"strings"
+)
+
+var (
+	tabTab = false
 )
 
 const (
 	RETURN_LINE     = "\r\n"
+	NEW_LINE        = "\n"
 	DELETE_BYTE     = "\x1b[D\x1b[P"
 	CURSOR_TO_LEFT  = "\x1b[D"
 	CURSOR_TO_RIGHT = "\x1b[C"
 	CLEAR_LINE      = "\x1b[2K"
+	BELL            = "\x07"
 )
 
 type ReadLine struct {
-	cursorPos int
-	buff      []byte
-	prompt    string
-	history   History
+	cursorPos    int
+	buff         []byte
+	prompt       string
+	history      History
+	autocomplete Autocomplete
 }
 
 func (rl *ReadLine) Print() {
@@ -35,12 +43,19 @@ func (rl *ReadLine) Reset() {
 	rl.cursorPos = len(rl.prompt)
 }
 
-func NewReadLine(prompt string, history History) *ReadLine {
+func NewReadLine(prompt string, history History, initialAutocomplete []string) *ReadLine {
+
+	au := Autocomplete{
+		Entries: initialAutocomplete,
+	}
+	au.DiscoverEntiesInPath()
+
 	return &ReadLine{
-		prompt:    prompt,
-		buff:      []byte{},
-		cursorPos: 0,
-		history:   history,
+		prompt:       prompt,
+		buff:         []byte{},
+		cursorPos:    0,
+		history:      history,
+		autocomplete: au,
 	}
 }
 
@@ -107,13 +122,58 @@ func (rl *ReadLine) Readline() string {
 
 		if input == 127 { //backspace
 
-			if rl.cursorPos > len(rl.prompt) {
+			if rl.cursorPos > 0 {
 
 				rl.cursorPos--
 
 				rl.buff = slices.Delete(rl.buff, rl.cursorPos, rl.cursorPos+1)
 
 				fmt.Print(DELETE_BYTE)
+			}
+
+		}
+
+		if input == '\t' {
+
+			matches := rl.autocomplete.GetEntriesMatching(string(rl.buff))
+
+			if len(matches) == 0 && len(rl.buff) > 0 {
+				fmt.Print(BELL)
+			}
+
+			if len(matches) == 1 {
+				rl.setBuffer(matches[0] + " ")
+				rl.redraw()
+			}
+
+			if len(matches) > 1 {
+
+				// validate if all matches has a prefix in common
+				commonPrefix := rl.autocomplete.CommonPrefix(matches)
+
+				if commonPrefix != string(rl.buff) {
+					rl.setBuffer(commonPrefix)
+					rl.redraw()
+					continue
+				}
+
+				if !tabTab {
+					fmt.Print(BELL)
+					tabTab = true
+				} else {
+
+					slices.Sort(matches)
+					preview := strings.Join(matches, "  ")
+
+					fmt.Print(RETURN_LINE)
+					fmt.Print(preview)
+					fmt.Print(NEW_LINE)
+
+					tabTab = false
+
+					rl.redraw()
+				}
+
 			}
 
 		}
@@ -144,7 +204,7 @@ func (rl *ReadLine) Readline() string {
 						fmt.Print(CURSOR_TO_RIGHT)
 					}
 				case 'D':
-					if rl.cursorPos > len(rl.prompt) {
+					if rl.cursorPos > 0 {
 						rl.cursorPos--
 						fmt.Print(CURSOR_TO_LEFT)
 					}

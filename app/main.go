@@ -40,17 +40,20 @@ func REPL() {
 			continue
 		}
 
+		// TODO: figure out if this is the optimal place to put
+		shell.HistoryManager.Add(input)
+
 		tokens, _ := lexer.Lex(input)
 
 		p := parser.New(tokens)
-		sc, parseErr := p.ParseSingleCommand()
+		pipeline, parseErr := p.ParseCommand()
 
 		if parseErr != nil {
 			fmt.Println(parseErr)
 			continue
 		}
 
-		err = shell.Execute(sc)
+		err = shell.Execute(pipeline)
 
 		if err != nil {
 			fmt.Println(err)
