@@ -1,5 +1,10 @@
 package shell
 
+import (
+	"os"
+	"strings"
+)
+
 type History interface {
 	Prev() (string, bool)
 	Next() (string, bool)
@@ -8,15 +13,27 @@ type History interface {
 }
 
 type HistoryManager struct {
-	entries []string
-	cursor  int
+	entries        []string
+	cursor         int
+	lastSavedIndex int
 }
 
 func NewHistory() *HistoryManager {
-	return &HistoryManager{
+
+	history := &HistoryManager{
 		entries: []string{},
 		cursor:  0,
 	}
+
+	histFile := os.Getenv("HISTFILE")
+
+	if histFile == "" {
+		return history
+	}
+
+	history.LoadFromFile(histFile)
+
+	return history
 }
 
 func (hm *HistoryManager) Add(cmd string) {
@@ -58,4 +75,55 @@ func (hm *HistoryManager) ReadLastN(n int) []string {
 
 func (hm *HistoryManager) GetHistoryLen() int {
 	return len(hm.entries)
+}
+
+func (hm *HistoryManager) LoadFromFile(file string) error {
+
+	fileContent, err := os.ReadFile(file)
+
+	if err != nil {
+		return err
+	}
+
+	newEntries := strings.Split(string(fileContent), "\n")
+
+	for _, e := range newEntries {
+		if e != "" {
+			hm.entries = append(hm.entries, e)
+		}
+	}
+
+	//hm.entries = append(hm.entries, newEntries...)
+	hm.cursor = len(hm.entries)
+
+	return nil
+}
+
+func (hm *HistoryManager) SaveToFile(file string) error {
+
+	buff := strings.Join(append(hm.entries, ""), "\n")
+
+	err := os.WriteFile(file, []byte(buff), 0644)
+
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (hm *HistoryManager) AppendToFile(file string) error {
+
+	f, err := os.OpenFile(file, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	if err != nil {
+		return err
+	}
+
+	for _, entry := range hm.entries[hm.lastSavedIndex:] {
+		f.WriteString(entry + "\n")
+	}
+
+	hm.lastSavedIndex = len(hm.entries)
+
+	return nil
 }
