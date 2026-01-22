@@ -7,6 +7,14 @@ import (
 	"github.com/codecrafters-io/shell-starter-go/app/lexer"
 )
 
+type Pipeline struct {
+	Commands []*SingleCommand
+}
+
+func (p *Pipeline) add(sc *SingleCommand) {
+	p.Commands = append(p.Commands, sc)
+}
+
 type SingleCommand struct {
 	Args   []string
 	Redirs []Redirection
@@ -45,7 +53,9 @@ func (p *Parser) next() *lexer.Token {
 	return t
 }
 
-func (p *Parser) ParseSingleCommand() (*SingleCommand, error) {
+func (p *Parser) ParseCommand() (*Pipeline, error) {
+
+	pipeline := &Pipeline{}
 
 	sc := &SingleCommand{}
 
@@ -65,12 +75,19 @@ func (p *Parser) ParseSingleCommand() (*SingleCommand, error) {
 					return nil, err
 				}
 			}
+			// TODO: evaluate if there are no commands after the pipe
+			if token.Value == "|" {
+				pipeline.add(sc)
+				sc = &SingleCommand{}
+			}
 		}
 
 		p.next()
 	}
 
-	return sc, nil
+	pipeline.add(sc)
+
+	return pipeline, nil
 }
 
 func (p *Parser) parseRedirection(token *lexer.Token, sc *SingleCommand) error {
