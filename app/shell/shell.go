@@ -13,7 +13,7 @@ import (
 	"github.com/tomasdepi/golang-shell/app/parser"
 )
 
-const PROMP = "$ "
+const PROMPT = "> "
 
 const (
 	EXIT_COMMAND    = "exit"
@@ -85,14 +85,18 @@ type Shell struct {
 	CurrentDir     string
 	HistoryManager *HistoryManager
 	readline       *ReadLine
+	Prompt         *Prompt
 }
 
 func NewShell(currDir string) *Shell {
 
 	h := NewHistory()
 
+	// TODO: Rename, its confusing prompt as the header and the ">" of readline
+	prompt := Prompt{}
+
 	// TODO: quite ugly, need refactor
-	rl := NewReadLine(PROMP, h, []string{
+	rl := NewReadLine(PROMPT, h, []string{
 		ECHO_COMMAND,
 		EXIT_COMMAND,
 		TYPE_COMMAND,
@@ -105,6 +109,7 @@ func NewShell(currDir string) *Shell {
 		CurrentDir:     currDir,
 		HistoryManager: h,
 		readline:       rl,
+		Prompt:         &prompt,
 	}
 }
 
@@ -114,11 +119,6 @@ func (s *Shell) ReadlineFromShell() string {
 
 func (s *Shell) changeDir(newDir string) {
 	s.CurrentDir = newDir
-}
-
-func (s *Shell) PrintPrompt() {
-	// fmt.Print(s.currentDir, PROMP)
-	fmt.Print(PROMP)
 }
 
 func (s *Shell) isBuiltInCommand(cmd string) bool {

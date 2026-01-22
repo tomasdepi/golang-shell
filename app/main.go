@@ -28,6 +28,7 @@ func REPL() {
 
 		oldState, _ := term.MakeRaw(fd)
 
+		shell.Prompt.Render()
 		input := shell.ReadlineFromShell()
 
 		err := term.Restore(fd, oldState)

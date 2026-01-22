@@ -84,7 +84,6 @@ func (rl *ReadLine) Readline() string {
 
 	for {
 		os.Stdin.Read(byteBuf)
-
 		input := byteBuf[0]
 
 		if isPrintable(input) {
