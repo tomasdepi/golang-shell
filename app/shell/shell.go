@@ -10,7 +10,7 @@ import (
 	"strings"
 	"syscall"
 
-	"github.com/codecrafters-io/shell-starter-go/app/parser"
+	"github.com/tomasdepi/golang-shell/app/parser"
 )
 
 const PROMP = "$ "
@@ -383,6 +383,8 @@ func (s *Shell) excuteSingleCommand(sc *parser.SingleCommand) error {
 	if len(sc.Args) == 0 {
 		return nil
 	}
+
+	s.HistoryManager.Add(strings.Join(sc.Args, " "))
 
 	cmd := sc.Args[0]
 	args := sc.Args[1:]
