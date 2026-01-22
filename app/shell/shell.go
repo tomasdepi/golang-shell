@@ -9,7 +9,7 @@ import (
 	"strings"
 	"syscall"
 
-	"github.com/codecrafters-io/shell-starter-go/app/parser"
+	"github.com/tomasdepi/golang-shell/app/parser"
 )
 
 const PROMP = "$ "

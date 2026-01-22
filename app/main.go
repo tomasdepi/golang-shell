@@ -6,9 +6,9 @@ import (
 	"os"
 	"strings"
 
-	"github.com/codecrafters-io/shell-starter-go/app/lexer"
-	"github.com/codecrafters-io/shell-starter-go/app/parser"
-	"github.com/codecrafters-io/shell-starter-go/app/shell"
+	"github.com/tomasdepi/golang-shell/app/lexer"
+	"github.com/tomasdepi/golang-shell/app/parser"
+	"github.com/tomasdepi/golang-shell/app/shell"
 	"golang.org/x/term"
 )
 
