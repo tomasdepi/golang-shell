@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strconv"
 
-	"github.com/codecrafters-io/shell-starter-go/app/lexer"
+	"github.com/tomasdepi/golang-shell/app/lexer"
 )
 
 type SingleCommand struct {
