@@ -99,11 +99,6 @@ func (rl *ReadLine) Readline() string {
 
 			line := string(rl.buff)
 
-			// responsibilty of adding the entry to history is shell's
-			/* if len(line) > 0 {
-				rl.history.Add(line)
-			} */
-
 			rl.buff = nil
 			rl.cursorPos = 0
 
