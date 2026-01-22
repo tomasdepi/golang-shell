@@ -325,6 +325,7 @@ func (s *Shell) Execute(pipeline *parser.Pipeline) error {
 
 		c[index-1].SetStdout(w)
 
+		// TODO: refactor, Execution context defined twice
 		if s.isBuiltInCommand(cmd.Args[0]) {
 			c[index] = &BuiltinCommand{
 				ctx: &ExecutionContext{
@@ -422,6 +423,7 @@ func (s *Shell) execExternal(cmd string, args []string) error {
 	return nil
 }
 
+// TODO: implement redirections as os.Pipe
 func (s *Shell) applyRedirections(redirs []parser.Redirection) ([]func(), error) {
 	var restoreFns []func()
 
